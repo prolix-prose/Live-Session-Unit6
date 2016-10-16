@@ -1,0 +1,53 @@
+library(plyr)
+library(gdata)
+
+## (JJB)Doing these two things made everything else run pretty smoothly.
+
+setwd("C:/MSDS 6306-FALL2016/402/Live session 06") #(JJB) Created this matching directory on computer, synced with Github
+bk <- read.csv("rollingsales_queens.csv",header=TRUE) #(JJB)Changed for the Queens Data, take out skip=4 creates bk dataset
+
+
+## Check the data
+head(bk)
+summary(bk)
+str(bk) # Very handy function!
+
+
+## clean/format the data with regular expressions
+## More on these later. For now, know that the
+## pattern "[^[:digit:]]" refers to members of the variable name that
+## start with digits. We use the gsub command to replace them with a blank space.
+# We create a new variable that is a "clean' version of sale.price.
+# And sale.price.n is numeric, not a factor.
+bk$SALE.PRICE.N <- as.numeric(gsub("[^[:digit:]]","", bk$SALE.PRICE)) #(JJB) new column is added sale.price.n
+count(is.na(bk$SALE.PRICE.N))
+
+names(bk) <- tolower(names(bk)) # make all variable names lower case
+## Get rid of leading digits
+bk$gross.sqft <- as.numeric(gsub("[^[:digit:]]","", bk$gross.square.feet))
+bk$land.sqft <- as.numeric(gsub("[^[:digit:]]","", bk$land.square.feet))
+bk$year.built <- as.numeric(as.character(bk$year.built))
+
+## do a bit of exploration to make sure there's not anything
+## weird going on with sale prices
+attach(bk)
+hist(sale.price.n) #(JJB) Histogram plot created - looks weird
+detach(bk)
+
+## keep only the actual sales
+
+bk.sale <- bk[bk$sale.price.n!=0,]   #(JJB) Creates bk.sale dataset
+plot(bk.sale$gross.sqft,bk.sale$sale.price.n)
+plot(log10(bk.sale$gross.sqft),log10(bk.sale$sale.price.n))
+
+## for now, let's look at 1-, 2-, and 3-family homes
+bk.homes <- bk.sale[which(grepl("FAMILY",bk.sale$building.class.category)),] #(JJB) Creates bk.homes dataset
+dim(bk.homes)
+plot(log10(bk.homes$gross.sqft),log10(bk.homes$sale.price.n))
+summary(bk.homes[which(bk.homes$sale.price.n<100000),])
+
+
+## remove outliers that seem like they weren't actual sales
+bk.homes$outliers <- (log10(bk.homes$sale.price.n) <=5) + 0
+bk.homes <- bk.homes[which(bk.homes$outliers==0),]
+plot(log(bk.homes$gross.sqft),log(bk.homes$sale.price.n))
